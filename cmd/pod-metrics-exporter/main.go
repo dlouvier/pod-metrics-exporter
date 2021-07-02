@@ -78,10 +78,9 @@ func getPods(listOptions metav1.ListOptions, namespace string, clientset *kubern
 
 // createListOptions parse the argument that the user specifies for
 // filtering for the pods to list only the pods that match the query.
-// It can be extended with FieldSelector to also search for other Kubernetes fields.
-func createListOptions(labelName string, labelValue string, state string) metav1.ListOptions {
+func createListOptions(labelName string, labelValue string, phase string) metav1.ListOptions {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{labelName: labelValue}}
-	fieldSelector := fmt.Sprintf("status.phase=%s", state)
+	fieldSelector := fmt.Sprintf("status.phase=%s", phase)
 
 	return metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
@@ -103,17 +102,19 @@ func main() {
 	client := k8sClient()
 	go startWs()
 
-	podCountMetric.WithLabelValues(*labelName, *labelValue, "Running").Set(2)
-
 	for {
-		selector := createListOptions(*labelName, *labelValue, "Running")
-		pods, err := getPods(selector, "demo-production", client)
-		if err != nil {
-			fmt.Printf("There were an error trying to get the number of pods. Error: %s", err.Error())
+		// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+		podPhases := [5]string{"Pending", "Running", "Succeeded", "Failed", "Unknown"}
+
+		for _, phase := range podPhases {
+			selector := createListOptions(*labelName, *labelValue, phase)
+			pods, err := getPods(selector, "demo-production", client)
+			if err != nil {
+				fmt.Printf("Error getting the pod list. {}", err)
+			}
+			podCountMetric.WithLabelValues(*labelName, *labelValue, phase).Set(float64(len(pods)))
 		}
 
-		podCountMetric.WithLabelValues(*labelName, *labelValue, "Running").Set(float64(len(pods)))
 		time.Sleep(10 * time.Second)
 	}
-
 }
