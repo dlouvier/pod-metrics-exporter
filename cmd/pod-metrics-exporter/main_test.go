@@ -11,10 +11,11 @@ import (
 
 func TestGetPods(t *testing.T) {
 
-	api := &KubernetesAPI{
+	api := &k8sApi{
 		Client: fakeClient.NewSimpleClientset(),
 	}
 
+	// Define the fake Pod object
 	pod := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -29,6 +30,7 @@ func TestGetPods(t *testing.T) {
 		},
 	}
 
+	// Add the fake Pod object to the fake mocked API.
 	api.Client.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 
 	selector := createListOptions("app", "demo", "Running")

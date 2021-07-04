@@ -9,9 +9,11 @@ import (
 	"os"
 	"time"
 
+	// Prometheus dependencies
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	// Kubernetes API dependencies
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -35,7 +37,9 @@ var podCountMetric = prometheus.NewGaugeVec(
 	[]string{"label_name", "label_value", "phase"},
 )
 
-type KubernetesAPI struct {
+// k8s implements kubernetes interface, so it is easier
+// to create mock the API during testing.
+type k8sApi struct {
 	Client kubernetes.Interface
 }
 
@@ -75,13 +79,13 @@ func k8sClient() *kubernetes.Clientset {
 }
 
 // getPods returns an array with the list of Pods that match the criteria.
-func (k KubernetesAPI) getPods(listOptions metav1.ListOptions, namespace string) ([]v1.Pod, error) {
+func (k k8sApi) getPods(listOptions metav1.ListOptions, namespace string) ([]v1.Pod, error) {
 	podList, err := k.Client.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
 	return podList.Items, err
 }
 
-// createListOptions parse the argument that the user specifies for
-// filtering for the pods to list only the pods that match the query.
+// createListOptions create the list option necessary to filter for the pods
+// that match the query.
 func createListOptions(labelName string, labelValue string, phase string) metav1.ListOptions {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{labelName: labelValue}}
 	fieldSelector := fmt.Sprintf("status.phase=%s", phase)
@@ -92,7 +96,9 @@ func createListOptions(labelName string, labelValue string, phase string) metav1
 	}
 }
 
+// startWs starts the http server necessary to export the prometheus metrics.
 func startWs() {
+	log.Println("Starting webserver in", *metricListenAddr)
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(*metricListenAddr, nil))
 }
@@ -104,7 +110,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	api := &KubernetesAPI{
+	api := &k8sApi{
 		Client: k8sClient(),
 	}
 
@@ -118,8 +124,9 @@ func main() {
 			selector := createListOptions(*labelName, *labelValue, phase)
 			pods, err := api.getPods(selector, "demo-production")
 			if err != nil {
-				fmt.Println("Error getting the pod list. {}", err)
+				log.Println("Error getting the pod list.\n", err)
 			}
+
 			podCountMetric.WithLabelValues(*labelName, *labelValue, phase).Set(float64(len(pods)))
 		}
 
