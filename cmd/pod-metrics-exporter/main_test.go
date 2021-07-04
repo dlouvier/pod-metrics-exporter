@@ -34,7 +34,7 @@ func TestGetPods(t *testing.T) {
 	api.Client.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 
 	selector := createListOptions("app", "demo", "Running")
-	pods, _ := api.getPods(selector, "default")
+	pods, _ := api.getPods(selector)
 
 	if pods[0].Name != "test-pod" {
 		t.Errorf("test-pod is not equal to %s", pods[0].Name)

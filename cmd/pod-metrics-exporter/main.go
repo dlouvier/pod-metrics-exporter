@@ -22,8 +22,8 @@ import (
 )
 
 var (
-	labelName        = flag.String("label-name", "", "Set the label name to filter")
-	labelValue       = flag.String("label-value", "", "Set the value to search from the set label")
+	labelName        = flag.String("label-name", "", "Set the label name to filter.")
+	labelValue       = flag.String("label-value", "", "Set the value to search from the set label.")
 	metricListenAddr = flag.String("metrics-listen-addr", "127.0.0.1:8080", "Address to listen blabla")
 	kubeconfig       = flag.String("kubeconfig", "", "Path to Kubeconfig")
 	api              = k8sApi{Client: nil}
@@ -77,8 +77,8 @@ func k8sClient() *kubernetes.Clientset {
 }
 
 // getPods returns an array with the list of Pods that match the criteria.
-func (k k8sApi) getPods(listOptions metav1.ListOptions, namespace string) ([]v1.Pod, error) {
-	podList, err := k.Client.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+func (k k8sApi) getPods(listOptions metav1.ListOptions) ([]v1.Pod, error) {
+	podList, err := k.Client.CoreV1().Pods("").List(context.TODO(), listOptions)
 	return podList.Items, err
 }
 
@@ -97,6 +97,7 @@ func createListOptions(labelName string, labelValue string, phase string) metav1
 // startWs starts the http server necessary to export the prometheus metrics.
 func startWs() {
 	log.Println("Starting webserver in", *metricListenAddr)
+	log.Printf("Metrics are available in http://%s/metrics", *metricListenAddr)
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(*metricListenAddr, nil))
 }
@@ -131,7 +132,7 @@ func main() {
 
 		for _, phase := range podPhases {
 			selector := createListOptions(*labelName, *labelValue, phase)
-			pods, err := api.getPods(selector, "demo-production")
+			pods, err := api.getPods(selector)
 			if err != nil {
 				log.Println("Error getting the pod list.\n", err)
 			}
