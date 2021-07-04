@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	// Prometheus dependencies
@@ -24,8 +25,9 @@ var (
 	labelName        = flag.String("label-name", "", "Set the label name to filter")
 	labelValue       = flag.String("label-value", "", "Set the value to search from the set label")
 	metricListenAddr = flag.String("metrics-listen-addr", "127.0.0.1:8080", "Address to listen blabla")
-	kubeconfig       = flag.String("kubeconfig", "/home/dani/.kube/config", "Path to Kubeconfig")
+	kubeconfig       = flag.String("kubeconfig", "", "Path to Kubeconfig")
 	api              = k8sApi{Client: nil}
+	kubeConfigPath   string
 )
 
 var podCountMetric = prometheus.NewGaugeVec(
@@ -50,7 +52,18 @@ type k8sApi struct {
 // (it has to be created previously) if not, it will read the kubeconfig
 // file from user home directory or provided as a argument.
 func k8sClient() *kubernetes.Clientset {
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if *kubeconfig == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Println("Error trying to discover user home directory.", err)
+		}
+		kubeConfigPath = homeDir + "/.kube/config"
+	} else {
+		kubeConfigPath = *kubeconfig
+	}
+
+	log.Println("Loading kubeconfig from", kubeConfigPath)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {
 		log.Fatal("It was not possible to connect to the Kubernetes cluster.\nCheck if it is possible to connect to the Kubernetes API.\n",
 			err.Error())
