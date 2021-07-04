@@ -101,12 +101,24 @@ func startWs() {
 	log.Fatal(http.ListenAndServe(*metricListenAddr, nil))
 }
 
+// checkFlags verifies the minimum the app has started with the minimum required
+// flags
+func checkFlags() {
+	if *labelName == "" {
+		log.Fatal("Flag --label-name is missing.")
+	} else if *labelValue == "" {
+		log.Fatal("Flag --label-value is missing.")
+	}
+}
+
 func init() {
 	prometheus.MustRegister(podCountMetric)
 }
 
 func main() {
 	flag.Parse()
+	checkFlags()
+
 	api := &k8sApi{
 		Client: k8sClient(),
 	}

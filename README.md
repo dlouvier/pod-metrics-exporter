@@ -1,13 +1,12 @@
 # Pod Metrics Exporter
-It is an application written in Golang that once it is started, searchs
-in Kubernetes for the number of pods matching the selected
-labels and starts an HTTP server which exposes the number of pods as a Prometheus metric (`pod_count`).
+This application checks periodically (every 10s) how many
+Pods matching the selected label name/value exist in the the Kubernetes cluster (all namespaces).
 
-The labels can be passed dinamically using flags.
+This number is later exposed as Prometheus metric (`pod_count`).
 
 # Requirements
-Golang 1.16
-
+- Golang 1.16
+- Kubernetes Cluster (>1.20)
 
 ## How to run the unit tests
 ``` 
@@ -36,6 +35,19 @@ cd cmd/pod-metrics-exporter
 `--metricListenAddr host:port` specified the host:port where the HTTP Server will start. The port needs to be free. By default it is: *127.0.0.1:8080*. This flag is optional.
 
 `--kubeconfig path` specifies the path to our kubeconfig file. by default is *~/.kube/config*. This flag is optional.
+
+Once the application starts, it will let know us in which URL we can check the metrics:
+
+Output:
+```
+$ cd cmd/pod-metrics-exporter
+$ ./pod-metrics-exporter --label-name app \
+                       --label-value demo-db
+2021/07/04 21:20:46 Loading kubeconfig from /home/dani/.kube/config
+2021/07/04 21:20:46 Starting webserver in 127.0.0.1:8080
+2021/07/04 21:20:46 Metrics are available in http://127.0.0.1:8080/metrics
+```
+
 # Troubleshooting
 
 - The Kubeconfig configuration is not correct
