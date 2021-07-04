@@ -35,6 +35,10 @@ var podCountMetric = prometheus.NewGaugeVec(
 	[]string{"label_name", "label_value", "phase"},
 )
 
+type KubernetesAPI struct {
+	Client kubernetes.Interface
+}
+
 // k8sclient tries to figure out wherever the application is running
 // inside of a Kubernetes cluster or outside and depending of this it
 // uses a different configuration to start.
@@ -71,8 +75,8 @@ func k8sClient() *kubernetes.Clientset {
 }
 
 // getPods returns an array with the list of Pods that match the criteria.
-func getPods(listOptions metav1.ListOptions, namespace string, clientset *kubernetes.Clientset) ([]v1.Pod, error) {
-	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+func (k KubernetesAPI) getPods(listOptions metav1.ListOptions, namespace string) ([]v1.Pod, error) {
+	podList, err := k.Client.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
 	return podList.Items, err
 }
 
@@ -94,12 +98,16 @@ func startWs() {
 }
 
 func init() {
-	flag.Parse()
 	prometheus.MustRegister(podCountMetric)
 }
 
 func main() {
-	client := k8sClient()
+	flag.Parse()
+
+	api := &KubernetesAPI{
+		Client: k8sClient(),
+	}
+
 	go startWs()
 
 	for {
@@ -108,9 +116,9 @@ func main() {
 
 		for _, phase := range podPhases {
 			selector := createListOptions(*labelName, *labelValue, phase)
-			pods, err := getPods(selector, "demo-production", client)
+			pods, err := api.getPods(selector, "demo-production")
 			if err != nil {
-				fmt.Printf("Error getting the pod list. {}", err)
+				fmt.Println("Error getting the pod list. {}", err)
 			}
 			podCountMetric.WithLabelValues(*labelName, *labelValue, phase).Set(float64(len(pods)))
 		}
