@@ -27,6 +27,7 @@ var (
 	labelValue       = flag.String("label-value", "", "Set the value to search from the set label")
 	metricListenAddr = flag.String("metrics-listen-addr", "127.0.0.1:8080", "Address to listen blabla")
 	kubeconfig       = flag.String("kubeconfig", "/home/dani/.kube/config", "Path to Kubeconfig")
+	api              = k8sApi{Client: k8sClient()}
 )
 
 var podCountMetric = prometheus.NewGaugeVec(
@@ -109,10 +110,6 @@ func init() {
 
 func main() {
 	flag.Parse()
-
-	api := &k8sApi{
-		Client: k8sClient(),
-	}
 
 	go startWs()
 
