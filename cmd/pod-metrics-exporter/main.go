@@ -25,7 +25,7 @@ var (
 	labelValue       = flag.String("label-value", "", "Set the value to search from the set label")
 	metricListenAddr = flag.String("metrics-listen-addr", "127.0.0.1:8080", "Address to listen blabla")
 	kubeconfig       = flag.String("kubeconfig", "/home/dani/.kube/config", "Path to Kubeconfig")
-	api              = k8sApi{Client: k8sClient()}
+	api              = k8sApi{Client: nil}
 )
 
 var podCountMetric = prometheus.NewGaugeVec(
@@ -52,12 +52,13 @@ type k8sApi struct {
 func k8sClient() *kubernetes.Clientset {
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		panic(err.Error())
+		log.Fatal("It was not possible to connect to the Kubernetes cluster.\nCheck if it is possible to connect to the Kubernetes API.\n",
+			err.Error())
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		log.Fatal("It was not possible to create the Kubernetes configuration.\n", err.Error())
 	}
 	return clientset
 }
@@ -93,6 +94,9 @@ func init() {
 
 func main() {
 	flag.Parse()
+	api := &k8sApi{
+		Client: k8sClient(),
+	}
 
 	go startWs()
 
