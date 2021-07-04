@@ -4,6 +4,9 @@ Pods matching the selected label name/value exist in the the Kubernetes cluster 
 
 This number is later exposed as Prometheus metric (`pod_count`).
 
+The metric is useful in cases that we have Autoscaling and we would like to monitor the number of 
+Pods of a deployment have been running (or in another state) at any point in time.
+
 # Requirements
 - Golang 1.16
 - Kubernetes Cluster (>1.20)
